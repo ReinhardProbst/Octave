@@ -31,15 +31,33 @@ endfunction
 function y = fill_vector(cnt, val = 0)
 # usage: y = fill_vector(cnt, val = 0)
 #
-# Fills a vector 'y' with 'cnt' elements of value 'val'.
+# Returns a vector 'y' with 'cnt' elements of value 'val'.
 
     y = val(ones(1,cnt));
+endfunction
+
+function idx = idx_min(y)
+# usage: idx = idx_min(y)
+#
+# Returns the index 'idx' within 'y' holding the minimum value.
+
+    [v, i] = min(y);
+    idx = i;
+endfunction
+
+function idx = idx_max(y)
+# usage: idx = idx_max(y)
+#
+# Returns the index 'idx' within 'y' holding the maximum value.
+
+    [v, i] = max(y);
+    idx = i;
 endfunction
 
 function l = mse(y)
 # usage: l = mse(y)
 #
-# Fills a vector 'l' with the sliding mean square error from
+# Returns a vector 'l' with the sliding mean square error from
 # vector 'y'.
 
     s = numel(y);
