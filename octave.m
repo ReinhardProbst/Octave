@@ -54,6 +54,22 @@ function idx = idx_max(y)
     idx = i;
 endfunction
 
+function d = diff2(y, r = 0)
+# usage: d = diff2(y, r = 0)
+#
+# Computes the differiantial equation of y with radius r.
+
+    if (r == 0)
+        d = [0, diff(y)];
+        return;
+    endif
+
+    [row, col] = size(y);
+    dd = zeros(1,col-2*r);
+    dd = y(1+2*r:end) - y(1:end-2*r);
+    d = [zeros(1,r), dd, zeros(1,r)];
+endfunction
+
 function l = mse(y)
 # usage: l = mse(y)
 #
