@@ -88,3 +88,11 @@ function l = mse(y)
         endfor
     endfor
 endfunction
+
+function fn_list = get_files_from_dir(d, fp)
+# usage: fn_list = get_files_from_dir(d, fp)
+#
+# Returns a file name list from a given directory d according file pattern fp.
+
+    fn_list = glob(strcat(d, fp));
+endfunction
