@@ -96,3 +96,97 @@ function fn_list = get_files_from_dir(d, fp)
 
     fn_list = glob(strcat(d, fp));
 endfunction
+
+function convert_tr_offline_csv(fn_in)
+# usage: convert_tr_offline_csv(fn_in, fn_out)
+#
+# Convert output of TR offline csv in standard profile csv and save it.
+
+    s = strsplit (fn_in, ".");
+    fn_out = strcat(s{1}, "_ptb.", s{2});
+
+    M = dlmread(fn_in, ";");
+
+    r = columns(M);
+    printf("Found matrix with columns %i\n", r);
+ 
+    N(1,:) = [0:r-1];
+    N(2,:) = M(2, :) * 10;   # Height 10 um in um
+    N(3,:) = M(3, :) * -10;  # Height 10 um in um
+ 
+    plot(N(1,:), N(2,:), N(3,:));
+ 
+    dlmwrite (fn_out, N, ";");
+endfunction
+
+function convert_bf_csv(fn_in)
+# usage: convert_bf_csv(fn_in)
+#
+# Convert output of beadfiller csv in standard profile csv and save it.
+
+    s = strsplit (fn_in, ".");
+    fn_out = strcat(s{1}, "_ptb.", s{2});
+    
+    m = dlmread(fn_in, ";");
+    
+    if (rows(m) > 1)
+        error("Only vector as input is allowed!");
+    endif
+    
+    turn_idx = 0;
+    i=1;
+    while (i <= columns(m)-2)
+        if(m(i+2) < m(i))
+            turn_idx = i;
+            printf("Found turn point at i/m(i)/m(i+1) %i/%f/%f\n", turn_idx, m(turn_idx), m(turn_idx+1));
+            break;
+        endif;
+        i = i+2;
+    endwhile;
+    
+    m1 = m(1:turn_idx-1);
+    m2 = m(turn_idx:end);
+    
+    printf("Found vector length m1/m2 %i/%i\n", columns(m1), columns(m2));
+        
+    x1 = round(m1(1:2:end) * 10);   # Position to index
+    z1 = round(m1(2:2:end) * 1000); # Height mm to um
+    
+    printf("Vector length x1/z1 %i/%i\n", columns(x1), columns(z1));
+        
+    if (columns(x1) != columns(z1))
+        error("Vector size of x1 and z1 do not match!");
+    endif
+    
+    x2 = round(flip(m2(1:2:end)) * 10);   # Position to index
+    z2 = round(flip(m2(2:2:end)) * 1000); # Height mm in um
+    
+    printf("Vector length x2/z2 %i/%i\n", columns(x2), columns(z2));
+    
+    if (columns(x2) != columns(z2))
+        error("Vector size of x2 and z2 do not match!");
+    endif
+        
+    if (columns(x1) >= columns(x2))
+        xx1 = x1(1:columns(x2));
+        zz1 = z1(1:columns(x2));
+        xx2 = x2;
+        zz2 = z2;
+    else
+        xx1 = x1;
+        zz1 = z1;
+        xx2 = x2(1:columns(x1));
+        zz2 = z2(1:columns(x1));
+    endif
+        
+    printf("Found point set at x1/z1 (%i/%i) (%i/%i) and x2/z2 (%i/%i) (%i/%i)\n",
+           xx1(1), zz1(1), xx1(end), zz1(end), xx2(1), zz2(1), xx2(end), zz2(end));
+    
+    plot(xx1, zz1, xx2, zz2);
+    
+    M(1,:) = xx1;
+    M(2,:) = zz1;
+    M(3,:) = zz2;
+    
+    dlmwrite (fn_out, M, ";");
+endfunction
