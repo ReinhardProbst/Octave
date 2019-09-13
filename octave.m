@@ -97,13 +97,13 @@ function fn_list = get_files_from_dir(d, fp)
     fn_list = glob(strcat(d, fp));
 endfunction
 
-function convert_tr_offline_csv(fn_in)
+function convert_tro_csv(fn_in)
 # usage: convert_tr_offline_csv(fn_in, fn_out)
 #
 # Convert output of TR offline csv in standard profile csv and save it.
 
-    s = strsplit (fn_in, ".");
-    fn_out = strcat(s{1}, "_ptb.", s{2});
+    s = strsplit(fn_in, ".");
+    fn_out = strcat(s{1}, "-ptb.", s{2});
 
     M = dlmread(fn_in, ";");
 
@@ -111,21 +111,22 @@ function convert_tr_offline_csv(fn_in)
     printf("Found matrix with columns %i\n", r);
  
     N(1,:) = [0:r-1];
-    N(2,:) = M(2, :) * 10;   # Height 10 um in um
-    N(3,:) = M(3, :) * -10;  # Height 10 um in um
+    N(2,:) = M(2, :) * 10;   # Height 10 um to um
+    N(3,:) = M(3, :) * -10;  # Height 10 um to um
  
     plot(N(1,:), N(2,:), N(3,:));
- 
+    grid on;
+    
     dlmwrite (fn_out, N, ";");
 endfunction
 
-function convert_bf_csv(fn_in)
+function convert_bf_csv(fn_in, length = 200, mirror = false)
 # usage: convert_bf_csv(fn_in)
 #
 # Convert output of beadfiller csv in standard profile csv and save it.
 
-    s = strsplit (fn_in, ".");
-    fn_out = strcat(s{1}, "_ptb.", s{2});
+    s = strsplit(fn_in, ".");
+    fn_out = strcat(s{1}, "-ptb.", s{2});
     
     m = dlmread(fn_in, ";");
     
@@ -178,15 +179,28 @@ function convert_bf_csv(fn_in)
         xx2 = x2(1:columns(x1));
         zz2 = z2(1:columns(x1));
     endif
-        
+    
+    if (mirror)
+        zz1 = flip(zz1);
+        zz2 = flip(zz2);
+    endif
+    
     printf("Found point set at x1/z1 (%i/%i) (%i/%i) and x2/z2 (%i/%i) (%i/%i)\n",
            xx1(1), zz1(1), xx1(end), zz1(end), xx2(1), zz2(1), xx2(end), zz2(end));
     
+    subplot (1, 2, 1);
     plot(xx1, zz1, xx2, zz2);
+    grid on;
+    ylabel ("height [um]");
     
-    M(1,:) = xx1;
-    M(2,:) = zz1;
-    M(3,:) = zz2;
+    M(1,:) = xx1(1:length);
+    M(2,:) = zz1(1:length);
+    M(3,:) = zz2(1:length);
+    
+    subplot (1, 2, 2);
+    plot(M(1,:), M(2,:), M(1,:), M(3,:));
+    grid on;
+    ylabel ("height [um]");
     
     dlmwrite (fn_out, M, ";");
 endfunction
