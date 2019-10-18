@@ -10,7 +10,8 @@ global self_onodes = 10;
 global self_wih = (2*rand(self_hnodes,self_inodes)-1.0)/sqrt(self_inodes);
 global self_who = (2*rand(self_onodes,self_hnodes)-1.0)/sqrt(self_hnodes);
 global self_lr = 0.1;
-global self_activation_function = @(x) 1./(1+e.^(-x));   # sigmoid
+global self_activation_function = @(x) 1./(1+e.^(-x));          # sigmoid
+global self_inverse_activation_function = @(x) log(x ./ (1-x)); # logit
 global self_hidden_outputs;
 global self_final_outputs;
 
@@ -22,7 +23,7 @@ function train(inputs_list, targets_list)
         global self_lr;
         global self_activation_function;
         
-        inputs = transpose(inputs_list);       # Convert row vectors to column vectors
+        inputs = transpose(inputs_list);   # Convert row vectors to column vectors
         targets = transpose(targets_list);        
         
         hidden_inputs = self_wih * inputs;                        # Calculate signals into hidden layer
@@ -47,6 +48,7 @@ function final_outputs = query(inputs_list)
         global self_activation_function;
         
         inputs = transpose(inputs_list);                          # Convert row vectors to column vectors
+        
         hidden_inputs = self_wih * inputs;                        # Calculate signals into hidden layer
         hidden_outputs = self_activation_function(hidden_inputs); # Calculate the signals emerging from hidden layer
         
@@ -54,9 +56,44 @@ function final_outputs = query(inputs_list)
         final_outputs = self_activation_function(final_inputs);   # Calculate the signals emerging from final output layer
 endfunction
 
+# Backquery the neural network
+# We'll use the same termnimology to each item, 
+# Eg target are the values at the right of the network, albeit used as input
+# Eg hidden_output is the signal to the right of the middle nodes
+function inputs = backquery(targets_list)
+        global self_wih;
+        global self_who;
+        global self_inverse_activation_function;
+        
+        # Convert row vector to column vector
+        final_outputs = transpose(targets_list);
+        
+        # Calculate the signal into the final output layer
+        final_inputs = self_inverse_activation_function(final_outputs);
+
+        # Calculate the signal out of the hidden layer
+        hidden_outputs = transpose(self_who) * final_inputs;
+        # Scale them back to 0.01 to .99
+        hidden_outputs -= min(hidden_outputs);
+        hidden_outputs /= max(hidden_outputs);
+        hidden_outputs *= 0.98;
+        hidden_outputs += 0.01;
+        
+        # Calculate the signal into the hidden layer
+        hidden_inputs = self_inverse_activation_function(hidden_outputs);
+        
+        # Calculate the signal out of the input layer
+        inputs = transpose(self_wih) * hidden_inputs;
+        # Scale them back to 0.01 to .99
+        inputs -= min(inputs);
+        inputs /= max(inputs);
+        inputs *= 0.98;
+        inputs += 0.01;
+endfunction
+
 # Train the neural network
 training_data_list = dlmread("./mnist_dataset/mnist_train_100.csv", ","); # Load the mnist training data CSV file into a list
-epochs = 5;                                                             # Epochs is the number of times the training data set is used for training
+epochs = 5;                                                               # Epochs is the number of times the training data set is used for training
 
 for i = 1:epochs
     for j = 1:rows(training_data_list)
@@ -75,7 +112,7 @@ for j = 1:rows(test_data_list)
     label = test_data_list(j,1);
         
     figure(++fig_no);
-    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);                 #flip(rot90(reshape(inputs, 28, 28), -1));    
+    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);    
     imshow(input_img);
     title(num2str(label));    
 
@@ -91,3 +128,16 @@ endfor
 
 printf("Scorecard"), disp(scorecard);
 printf("Performance %.2f\n", sum(scorecard)/columns(scorecard));
+
+disp("Run neural network backwards ...");
+for i = 1:10
+    targets = zeros(1,10) + 0.01;
+    targets(i) = 0.99;
+    inputs = backquery(targets);
+    
+    figure(++fig_no);
+    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
+    imshow(input_img);
+    title(num2str(i-1));
+endfor
+
