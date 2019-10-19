@@ -17,6 +17,38 @@ global self_final_outputs;
 
 fig_no = 0;
 
+function next = forward_query(network_matrix, actual)
+    global self_activation_function;
+    
+    next = self_activation_function(network_matrix * actual); # Calculate the signals emerging from layer
+endfunction
+
+function before = backward_query(network_matrix, actual)
+    global self_inverse_activation_function;
+
+    # Calculate the input signals
+    inputs = transpose(network_matrix) * self_inverse_activation_function(actual);
+    # Scale them back to 0.01 to .99
+    inputs -= min(inputs);
+    inputs /= max(inputs);
+    inputs *= 0.98;
+    inputs += 0.01;
+    
+    before = inputs;
+endfunction
+
+function dw = update_weights(lr)
+    
+    
+##        # Update the weights for the links between the hidden and output layers
+##        self_who += self_lr * (output_errors .* final_outputs .* (1.0 - final_outputs)) * transpose(hidden_outputs);
+##        
+##        # Update the weights for the links between the input and hidden layers
+##        self_wih += self_lr * (hidden_errors .* hidden_outputs .* (1.0 - hidden_outputs)) * transpose(inputs);
+##    
+##        dw = lr * ();
+endfunction
+
 function train(inputs_list, targets_list)
         global self_wih;
         global self_who;
@@ -45,15 +77,12 @@ endfunction
 function final_outputs = query(inputs_list)
         global self_wih;
         global self_who;
-        global self_activation_function;
         
         inputs = transpose(inputs_list);                          # Convert row vectors to column vectors
         
-        hidden_inputs = self_wih * inputs;                        # Calculate signals into hidden layer
-        hidden_outputs = self_activation_function(hidden_inputs); # Calculate the signals emerging from hidden layer
+        hidden_outputs = forward_query(self_wih, inputs);
         
-        final_inputs = self_who * hidden_outputs;                 # Calculate signals into final output layer
-        final_outputs = self_activation_function(final_inputs);   # Calculate the signals emerging from final output layer
+        final_outputs = forward_query(self_who, hidden_outputs);
 endfunction
 
 # Backquery the neural network
@@ -68,37 +97,19 @@ function inputs = backquery(targets_list)
         # Convert row vector to column vector
         final_outputs = transpose(targets_list);
 
-        # Calculate the signal into the final output layer
-        final_inputs = self_inverse_activation_function(final_outputs);
-
-        # Calculate the signal out of the hidden layer
-        hidden_outputs = transpose(self_who) * final_inputs;
-        # Scale them back to 0.01 to .99
-        hidden_outputs -= min(hidden_outputs);
-        hidden_outputs /= max(hidden_outputs);
-        hidden_outputs *= 0.98;
-        hidden_outputs += 0.01;
+        hidden_outputs = backward_query(self_who, final_outputs);        
         
-        # Calculate the signal into the hidden layer
-        hidden_inputs = self_inverse_activation_function(hidden_outputs);
-        
-        # Calculate the signal out of the input layer
-        inputs = transpose(self_wih) * hidden_inputs;
-        # Scale them back to 0.01 to .99
-        inputs -= min(inputs);
-        inputs /= max(inputs);
-        inputs *= 0.98;
-        inputs += 0.01;
+        inputs = backward_query(self_wih, hidden_outputs);
 endfunction
 
-disp("Run neural network backwards before training eg. 0 ...");
-targets = zeros(1,10) + 0.01;
-targets(1) = 0.99;
-inputs = backquery(targets);
-figure(++fig_no);
-input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
-imshow(input_img);
-title("Start value before training eg. 0");
+##disp("Run neural network backwards before training eg. 0 ...");
+##targets = zeros(1,10) + 0.01;
+##targets(1) = 0.99;
+##inputs = backquery(targets);
+##figure(++fig_no);
+##input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
+##imshow(input_img);
+##title("Start value before training eg. 0");
 
 # Train the neural network
 training_data_list = dlmread("./mnist_dataset/mnist_train_100.csv", ","); # Load the mnist training data CSV file into a list
@@ -120,10 +131,10 @@ for j = 1:rows(test_data_list)
     inputs = (test_data_list(j,2:end) ./ 255.0 .* 0.98) + 0.01;
     label = test_data_list(j,1);
         
-    figure(++fig_no);
-    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);    
-    imshow(input_img);
-    title(num2str(label));    
+##    figure(++fig_no);
+##    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);    
+##    imshow(input_img);
+##    title(num2str(label));    
 
     outputs = query(inputs);
     [llh, idx] = max(outputs);
@@ -138,15 +149,15 @@ endfor
 printf("Scorecard"), disp(scorecard);
 printf("Performance %.2f\n", sum(scorecard)/columns(scorecard));
 
-disp("Run neural network backwards ...");
-for i = 1:10
-    targets = zeros(1,10) + 0.01;
-    targets(i) = 0.99;
-    inputs = backquery(targets);
-    
-    figure(++fig_no);
-    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
-    imshow(input_img);
-    title(num2str(i-1));
-endfor
+##disp("Run neural network backwards ...");
+##for i = 1:10
+##    targets = zeros(1,10) + 0.01;
+##    targets(i) = 0.99;
+##    inputs = backquery(targets);
+##    
+##    figure(++fig_no);
+##    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
+##    imshow(input_img);
+##    title(num2str(i-1));
+##endfor
 
