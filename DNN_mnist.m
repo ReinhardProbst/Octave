@@ -67,7 +67,7 @@ function inputs = backquery(targets_list)
         
         # Convert row vector to column vector
         final_outputs = transpose(targets_list);
-        
+
         # Calculate the signal into the final output layer
         final_inputs = self_inverse_activation_function(final_outputs);
 
@@ -90,6 +90,15 @@ function inputs = backquery(targets_list)
         inputs *= 0.98;
         inputs += 0.01;
 endfunction
+
+disp("Run neural network backwards before training eg. 0 ...");
+targets = zeros(1,10) + 0.01;
+targets(1) = 0.99;
+inputs = backquery(targets);
+figure(++fig_no);
+input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
+imshow(input_img);
+title("Start value before training eg. 0");
 
 # Train the neural network
 training_data_list = dlmread("./mnist_dataset/mnist_train_100.csv", ","); # Load the mnist training data CSV file into a list
