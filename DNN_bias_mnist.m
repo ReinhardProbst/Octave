@@ -14,7 +14,8 @@ global self_activation_function = @(x) 1./(1+e.^(-x));          # sigmoid
 global self_inverse_activation_function = @(x) log(x ./ (1-x)); # logit
 global self_hidden_outputs;
 global self_final_outputs;
-global self_lr = 0.1;
+global self_lr_weights = 0.1;
+global self_lr_bias = 0.01;
 epochs = 5;   # Epochs is the number of times the training data set is used for training
 fig_no = 0;
 
@@ -48,7 +49,8 @@ endfunction
 function train(inputs_list, targets_list)
     global self_wih;
     global self_who;
-    global self_lr;
+    global self_lr_weights;
+    global self_lr_bias;
     global self_bias_hnodes;
         
     inputs = transpose(inputs_list);   # Convert row vectors to column vectors
@@ -60,12 +62,12 @@ function train(inputs_list, targets_list)
     output_errors = targets - final_outputs;              # Output layer error is the (target - actual)
     hidden_errors = transpose(self_who) * output_errors;  # Hidden layer error is the output_errors, split by weights, recombined at hidden nodes
     
-    self_who += update_weights(self_lr, output_errors, final_outputs, hidden_outputs);
+    self_who += update_weights(self_lr_weights, output_errors, final_outputs, hidden_outputs);
     
-    self_wih += update_weights(self_lr, hidden_errors, hidden_outputs, inputs);
+    self_wih += update_weights(self_lr_weights, hidden_errors, hidden_outputs, inputs);
     
-    ### bias update, comment it if not needed
-    self_bias_hnodes += update_bias(self_lr, hidden_errors, hidden_outputs);
+    ### bias update, comment it out if not needed
+    self_bias_hnodes += update_bias(self_lr_bias, hidden_errors, hidden_outputs);
 endfunction
     
 function final_outputs = query(inputs_list)
@@ -142,13 +144,13 @@ printf("Scorecard"), disp(scorecard);
 printf("Performance %.2f\n", sum(scorecard)/columns(scorecard));
 
 disp("Run neural network backwards ...");
-for i = 1:10
-    targets = zeros(1,10) + 0.01;
-    targets(i) = 0.99;
-    inputs = backquery(targets);
-    
-    figure(++fig_no);
-    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
-    imshow(input_img);
-    title(num2str(i-1));
-endfor
+%for i = 1:10
+%    targets = zeros(1,10) + 0.01;
+%    targets(i) = 0.99;
+%    inputs = backquery(targets);
+%    
+%    figure(++fig_no);
+%    input_img = rot90(flip(reshape(inputs, 28, 28)), -1);
+%    imshow(input_img);
+%    title(num2str(i-1));
+%endfor
